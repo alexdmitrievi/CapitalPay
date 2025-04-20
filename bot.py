@@ -28,11 +28,11 @@ async def start(message: types.Message):
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
+        types.InlineKeyboardButton("🔄 Перезапустить", callback_data="restart")
     )
 
-    banner = types.InputFile("Поиск команды.jpg")
-
-    await bot.send_photo(chat_id=message.chat.id, photo=banner)
+    banner = types.InputFile("banner.jpg")
+    await bot.send_photo(message.chat.id, banner)
 
     intro_text = """
 CapitalPay
@@ -124,6 +124,11 @@ async def teamlead_info(callback_query: types.CallbackQuery):
 async def back_to_menu(callback_query: types.CallbackQuery):
     await start(callback_query.message)
     await callback_query.answer()
+
+@dp.callback_query_handler(lambda c: c.data == "restart")
+async def restart_bot(callback_query: types.CallbackQuery):
+    await start(callback_query.message)
+    await callback_query.answer("🔄 Бот перезапущен")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)

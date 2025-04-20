@@ -29,8 +29,7 @@ async def start(message: types.Message):
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("👤 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
-    intro_text = (
-        """
+    intro_text = """
 CapitalPay | Платёжная платформа
 💼 Платформа для проведения сделок в HighRisk
 📊 Собственный софт для учёта, выплат и аналитики
@@ -46,7 +45,6 @@ CapitalPay | Платёжная платформа
 
 📩 Связь: @lexcapitalpay
 """
-    )
     await message.answer(intro_text)
     await message.answer("Выберите действие:", reply_markup=keyboard)
 
@@ -84,19 +82,14 @@ async def form_volume(message: types.Message, state: FSMContext):
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
-    summary = (
-        "Новая партнёрская заявка:
-"
-        f"Страна: {data['country']}
-"
-        f"Методы: {data['methods']}
-"
-        f"Гео: {data['geo']}
-"
-        f"Объём: {data['volume']}
-"
-        f"Контакт: {data['contact']}"
-    )
+   summary = f"""
+Новая партнёрская заявка:
+Страна: {data['country']}
+Методы: {data['methods']}
+Гео: {data['geo']}
+Объём: {data['volume']}
+Контакт: {data['contact']}
+"""
     await bot.send_message(chat_id=CHANNEL_ID, text=summary)
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")

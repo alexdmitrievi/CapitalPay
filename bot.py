@@ -29,22 +29,20 @@ async def start(message: types.Message):
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
-
     banner = types.InputFile("banner.jpg")
     caption = (
-    "CapitalPay\n"
-    "💼 Сделки в HighRisk\n"
-    "📊 Учёт, выплаты, аналитика\n"
-    "📚 Личный куратор\n"
-    "💰 Условия для опытных команд\n\n"
-    "⚙️ Депозит — от $500\n"
-    "📉 Вход — 8%, выход — 2,5%\n"
-    "🔄 Ставка в круг — 10,5%\n\n"
-    "🚀 3 дня без депозита\n"
-    "📆 На рынке с 2020\n"
-    "📩 @lexcapitalpay"
-)
-
+        "CapitalPay\n\n"
+        "💼 Сделки в HighRisk\n"
+        "📊 Учёт, выплаты, аналитика\n"
+        "📚 Личный куратор\n"
+        "💰 Условия для опытных команд\n\n"
+        "⚙️ Депозит — от $500\n"
+        "📉 Вход — 8%, выход — 2,5%\n"
+        "🔄 Ставка в круг — 10,5%\n\n"
+        "🚀 3 дня без депозита\n"
+        "📆 На рынке с 2020\n"
+        "📩 @lexcapitalpay"
+    )
     await bot.send_photo(chat_id=message.chat.id, photo=banner, caption=caption, parse_mode='HTML', reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text == "🔁 Перезапустить")
@@ -67,9 +65,11 @@ async def teamlead_info(callback_query: types.CallbackQuery):
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
         types.InlineKeyboardButton("🔙 Назад", callback_data="back")
     )
-    await bot.edit_message_text(
-        msg, callback_query.from_user.id, callback_query.message.message_id,
-        parse_mode='HTML', reply_markup=keyboard
+    await bot.send_message(
+        chat_id=callback_query.from_user.id,
+        text=msg,
+        parse_mode='HTML',
+        reply_markup=keyboard
     )
 
 @dp.callback_query_handler(lambda c: c.data == "back")
@@ -80,12 +80,11 @@ async def back_to_menu(callback_query: types.CallbackQuery):
 async def form_start(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
     await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_button)
-    await callback_query.answer()
 
 @dp.message_handler(state=PartnerForm.country)
 async def form_country(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
-    await message.answer("2. Какие методы приёма платежей доступны? (C2C, СБП, crypto и т.д.)", reply_markup=back_button)
+    await message.answer("2. Какие методы приёма платежей доступны? (C2C, СБП, крипта и т.д.)", reply_markup=back_button)
     await PartnerForm.methods.set()
 
 @dp.message_handler(state=PartnerForm.methods)
@@ -110,24 +109,18 @@ async def form_volume(message: types.Message, state: FSMContext):
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
-    summary = (
-        "📥 <b>Новая партнёрская заявка</b>\n\n"
-        f"🌍 Страна: <b>{data['country']}</b>\n"
-        f"💳 Методы: <b>{data['methods']}</b>\n"
-        f"📍 Гео: <b>{data['geo']}</b>\n"
-        f"📈 Объём: <b>{data['volume']}</b>\n"
-        f"📞 Контакт: <b>{data['contact']}</b>"
-    )
-    await bot.send_message(chat_id=CHANNEL_ID, text=summary, parse_mode='HTML')
+    summary = f"""
+Новая партнёрская заявка:
+Страна: {data['country']}
+Методы: {data['methods']}
+Гео: {data['geo']}
+Объём: {data['volume']}
+Контакт: {data['contact']}
+    """
+    await bot.send_message(chat_id=CHANNEL_ID, text=summary)
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
     await state.finish()
 
-# Установка команд для меню Telegram
-async def set_commands(_: Dispatcher):
-    await bot.set_my_commands([
-        types.BotCommand("start", "🔁 Перезапустить")
-    ])
-
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True, on_startup=set_commands)
+    executor.start_polling(dp, skip_updates=True)

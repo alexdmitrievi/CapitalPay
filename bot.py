@@ -26,16 +26,36 @@ back_button = types.InlineKeyboardMarkup().add(
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
-        types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead")
+        types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
+        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
 
     banner = types.InputFile("banner.jpg")
     caption = (
-        "<b>CapitalPay</b> — платёжная платформа для HighRisk\n\n"
-        "📊 Учёт, аналитика, выплаты\n"
-        "🚀 Без депозита — 3 дня теста\n\n"
-        "Нажмите кнопку ниже 👇🏼"
+        "CapitalPay
+
+"
+        "💼 Сделки в HighRisk
+"
+        "📊 Учёт, выплаты, аналитика
+"
+        "📚 Личный куратор
+"
+        "💰 Условия для опытных команд
+
+"
+        "⚙️ Депозит — от $500
+"
+        "📉 Вход — 8%, выход — 2,5%
+"
+        "🔄 Ставка в круг — 10,5%
+
+"
+        "🚀 3 дня без депозита
+"
+        "📆 На рынке с 2020
+"
+        "📩 @lexcapitalpay"
     )
 
     await bot.send_photo(chat_id=message.chat.id, photo=banner, caption=caption, parse_mode='HTML', reply_markup=keyboard)

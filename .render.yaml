@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: capitalpay-bot
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "./start.sh"
+    envVars:
+      - key: API_TOKEN
+        sync: false
+      - key: CHANNEL_ID
+        sync: false

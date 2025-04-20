@@ -82,14 +82,14 @@ async def form_volume(message: types.Message, state: FSMContext):
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
-   summary = f"""
-Новая партнёрская заявка:
-Страна: {data['country']}
-Методы: {data['methods']}
-Гео: {data['geo']}
-Объём: {data['volume']}
-Контакт: {data['contact']}
-"""
+    summary = f"""
+    Новая партнёрская заявка:
+    Страна: {data['country']}
+    Методы: {data['methods']}
+    Гео: {data['geo']}
+    Объём: {data['volume']}
+    Контакт: {data['contact']}
+    """
     await bot.send_message(chat_id=CHANNEL_ID, text=summary)
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")

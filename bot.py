@@ -11,7 +11,6 @@ MANAGER_ID = 7279978383
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-# Состояния для формы
 class PartnerForm(StatesGroup):
     country = State()
     methods = State()
@@ -19,12 +18,10 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-# Кнопка "Назад"
 back_button = types.InlineKeyboardMarkup().add(
     types.InlineKeyboardButton("🔙 Назад", callback_data="back")
 )
 
-# Команда /start
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
@@ -32,6 +29,7 @@ async def start(message: types.Message):
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead")
     )
+
     banner = types.InputFile("banner.jpg")
     caption = (
         "<b>CapitalPay</b> — платёжная платформа для HighRisk\n\n"
@@ -39,14 +37,13 @@ async def start(message: types.Message):
         "🚀 Без депозита — 3 дня теста\n\n"
         "Нажмите кнопку ниже 👇🏼"
     )
+
     await bot.send_photo(chat_id=message.chat.id, photo=banner, caption=caption, parse_mode='HTML', reply_markup=keyboard)
 
-# Перезапуск из меню
 @dp.message_handler(lambda message: message.text == "🔁 Перезапустить")
 async def restart_from_menu(message: types.Message):
     await start(message)
 
-# Callback "Я тимлид 🤗"
 @dp.callback_query_handler(lambda c: c.data == "teamlead")
 async def teamlead_info(callback_query: types.CallbackQuery):
     msg = (
@@ -68,12 +65,10 @@ async def teamlead_info(callback_query: types.CallbackQuery):
         parse_mode='HTML', reply_markup=keyboard
     )
 
-# Callback "Назад"
 @dp.callback_query_handler(lambda c: c.data == "back")
 async def back_to_menu(callback_query: types.CallbackQuery):
     await start(callback_query.message)
 
-# Хендлеры формы
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def form_start(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
@@ -121,12 +116,11 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
     await state.finish()
 
-# Установка Telegram menu (левый нижний угол)
-async def set_commands(bot: Bot):
+# Установка команд для меню Telegram
+async def set_commands(_: Dispatcher):
     await bot.set_my_commands([
         types.BotCommand("start", "🔁 Перезапустить")
     ])
 
 if __name__ == '__main__':
-    from aiogram import executor
     executor.start_polling(dp, skip_updates=True, on_startup=set_commands)

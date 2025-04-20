@@ -5,7 +5,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 
 API_TOKEN = os.getenv("API_TOKEN")
-CHANNEL_ID = 7279978383
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 MANAGER_ID = 7279978383
 
 bot = Bot(token=API_TOKEN)
@@ -18,19 +18,24 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-def back_button(step: str):
-    return types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton("⬅️ Назад", callback_data=f"back_{step}")
-    )
+back_button = types.InlineKeyboardMarkup().add(
+    types.InlineKeyboardButton("🔙 Назад", callback_data="back")
+)
 
-@dp.message_handler(commands=["start"])
+@dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
-        types.InlineKeyboardButton("👤 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
+        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
+        types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
     )
+
+    banner = types.InputFile("Поиск команды.jpg")
+
+    await bot.send_photo(chat_id=message.chat.id, photo=banner)
+
     intro_text = """
-CapitalPay | Платёжная платформа
+CapitalPay
 💼 Платформа для проведения сделок в HighRisk
 📊 Собственный софт для учёта, выплат и аналитики
 📚 Учебный центр с личным куратором
@@ -45,37 +50,36 @@ CapitalPay | Платёжная платформа
 
 📩 Связь: @lexcapitalpay
 """
-    await message.answer(intro_text)
-    await message.answer("Выберите действие:", reply_markup=keyboard)
+    await message.answer(intro_text, reply_markup=keyboard)
 
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def start_form(callback_query: types.CallbackQuery):
-    await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_button("start"))
+    await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_button)
     await PartnerForm.country.set()
     await callback_query.answer()
 
 @dp.message_handler(state=PartnerForm.country)
 async def form_country(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
-    await message.answer("2. Какие методы приема платежей доступны? (С2С, СБП, crypto и т.д.)", reply_markup=back_button("country"))
+    await message.answer("2. Какие методы приёма платежей доступны? (С2С, СБП, crypto и т.д.)", reply_markup=back_button)
     await PartnerForm.methods.set()
 
 @dp.message_handler(state=PartnerForm.methods)
 async def form_methods(message: types.Message, state: FSMContext):
     await state.update_data(methods=message.text)
-    await message.answer("3. На какие гео работаете?", reply_markup=back_button("methods"))
+    await message.answer("3. По каким гео работаете?", reply_markup=back_button)
     await PartnerForm.geo.set()
 
 @dp.message_handler(state=PartnerForm.geo)
 async def form_geo(message: types.Message, state: FSMContext):
     await state.update_data(geo=message.text)
-    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?", reply_markup=back_button("geo"))
+    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?", reply_markup=back_button)
     await PartnerForm.volume.set()
 
 @dp.message_handler(state=PartnerForm.volume)
 async def form_volume(message: types.Message, state: FSMContext):
     await state.update_data(volume=message.text)
-    await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=back_button("volume"))
+    await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=back_button)
     await PartnerForm.contact.set()
 
 @dp.message_handler(state=PartnerForm.contact)
@@ -83,36 +87,43 @@ async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
     summary = f"""
-    Новая партнёрская заявка:
-    Страна: {data['country']}
-    Методы: {data['methods']}
-    Гео: {data['geo']}
-    Объём: {data['volume']}
-    Контакт: {data['contact']}
-    """
+Новая партнёрская заявка:
+Страна: {data['country']}
+Методы: {data['methods']}
+Гео: {data['geo']}
+Объём: {data['volume']}
+Контакт: {data['contact']}
+"""
     await bot.send_message(chat_id=CHANNEL_ID, text=summary)
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
     await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("back_"), state="*")
-async def go_back(callback_query: types.CallbackQuery, state: FSMContext):
-    step = callback_query.data.split("_")[1]
-    if step == "start":
-        await start_form(callback_query)
-    elif step == "country":
-        await PartnerForm.country.set()
-        await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_button("start"))
-    elif step == "methods":
-        await PartnerForm.methods.set()
-        await callback_query.message.answer("2. Какие методы приема платежей доступны? (С2С, СБП, crypto и т.д.)", reply_markup=back_button("country"))
-    elif step == "geo":
-        await PartnerForm.geo.set()
-        await callback_query.message.answer("3. На какие гео работаете?", reply_markup=back_button("methods"))
-    elif step == "volume":
-        await PartnerForm.volume.set()
-        await callback_query.message.answer("4. Какой объём в день готовы обрабатывать?", reply_markup=back_button("geo"))
+@dp.callback_query_handler(lambda c: c.data == "teamlead")
+async def teamlead_info(callback_query: types.CallbackQuery):
+    keyboard = types.InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
+        types.InlineKeyboardButton("🔙 Назад в меню", callback_data="back_to_menu")
+    )
+    text = """
+🤝 6 наших преимуществ при работе с тимлидами:
+
+1. Высокая агентская рефка;
+2. Выводите баланс в любое время;
+3. Тестовый период для трейдера без страхового депа;
+4. Личный кабинет с детальной статистикой по всем вашим трейдерам;
+5. Подключайте к закрытым площадкам через нас;
+6. В данный момент свободный объем более 100кк, так что зальем в лимиты менее чем за 1 час.
+
+Если хочешь узнать условия и получить список площадок, нажми кнопку ниже👇🏼
+"""
+    await callback_query.message.answer(text, reply_markup=keyboard)
     await callback_query.answer()
 
-if __name__ == "__main__":
+@dp.callback_query_handler(lambda c: c.data == "back_to_menu")
+async def back_to_menu(callback_query: types.CallbackQuery):
+    await start(callback_query.message)
+    await callback_query.answer()
+
+if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)

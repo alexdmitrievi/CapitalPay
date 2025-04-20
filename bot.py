@@ -22,7 +22,12 @@ back_button = types.InlineKeyboardMarkup().add(
     types.InlineKeyboardButton("🔙 Назад", callback_data="back")
 )
 
+# Главное меню (ReplyKeyboard)
+main_menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
+main_menu.add("🔄 Перезапустить бота")
+
 @dp.message_handler(commands=['start'])
+@dp.message_handler(lambda message: message.text == "🔄 Перезапустить бота")
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
@@ -32,25 +37,29 @@ async def start(message: types.Message):
     )
 
     banner = types.InputFile("banner.jpg")
-    await bot.send_photo(message.chat.id, banner)
 
-    intro_text = """
-CapitalPay
-💼 Платформа для проведения сделок в HighRisk
-📊 Собственный софт для учёта, выплат и аналитики
-📚 Учебный центр с личным куратором
-💰 Выгодные условия для опытных команд
+    intro_text = """<b>CapitalPay</b>
 
-⚙️ Минимальный депозит — 500$
+💼 Сделки в HighRisk
+📊 Учёт, выплаты, аналитика
+📚 Личный куратор
+💰 Условия для опытных команд
+
+⚙️ Депозит — от $500
 📉 Вход — 8%, выход — 2,5%
 🔄 Ставка в круг — 10,5%
 
-🚀 3 дня работы без страхового депозита
-📆 На рынке с 2020 года
+🚀 3 дня без депозита
+📆 На рынке с 2020
+📩 @lexcapitalpay"""
 
-📩 Связь: @lexcapitalpay
-"""
-    await message.answer(intro_text, reply_markup=keyboard)
+    await bot.send_photo(
+        chat_id=message.chat.id,
+        photo=banner,
+        caption=intro_text,
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
 
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def start_form(callback_query: types.CallbackQuery):
@@ -95,7 +104,7 @@ async def form_contact(message: types.Message, state: FSMContext):
 Контакт: {data['contact']}
 """
     await bot.send_message(chat_id=CHANNEL_ID, text=summary)
-    await message.answer("Спасибо! Мы получили вашу заявку.")
+    await message.answer("Спасибо! Мы получили вашу заявку.", reply_markup=main_menu)
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
     await state.finish()
 

@@ -20,7 +20,7 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 # Google Sheets
 def init_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("capitalpay-3d03a47fdd18.json", scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name("/etc/secrets/credentials.json", scope)
     client = gspread.authorize(creds)
     sheet = client.open("CapitalPay Leads").sheet1
     return sheet
@@ -50,6 +50,9 @@ def back_or_manager():
 # Стартовое сообщение
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
+    source = message.get_args()
+    if source:
+        sheet.append_row([f"Трафик из: {source}"])
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
@@ -90,7 +93,7 @@ async def teamlead_info(callback_query: types.CallbackQuery):
 async def back_to_menu(callback_query: types.CallbackQuery):
     await start(callback_query.message)
 
-# Публикация в канал
+# Публикация кнопки в канал
 @dp.message_handler(commands=["publish"])
 async def post_button(message: types.Message):
     keyboard = types.InlineKeyboardMarkup().add(
@@ -108,7 +111,7 @@ async def form_start(callback_query: types.CallbackQuery):
 @dp.message_handler(state=PartnerForm.country)
 async def form_country(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
-    await message.answer("2. Какие методы приёма платежей доступны? (C2C, СБП, crypto и т.д.)", reply_markup=back_or_manager())
+    await message.answer("2. Какие методы приёма платежей доступны?", reply_markup=back_or_manager())
     await PartnerForm.methods.set()
 
 @dp.message_handler(state=PartnerForm.methods)
@@ -142,7 +145,7 @@ async def form_contact(message: types.Message, state: FSMContext):
         data['contact']
     ])
     await bot.send_message(CHANNEL_ID, f"""
-Новая партнёрская заявка:
+<b>Новая партнёрская заявка</b>:
 Страна: {data['country']}
 Методы: {data['methods']}
 Гео: {data['geo']}

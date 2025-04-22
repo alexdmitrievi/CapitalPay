@@ -7,9 +7,9 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from oauth2client.service_account import ServiceAccountCredentials
 
+# Конфигурация
 API_TOKEN = os.getenv("API_TOKEN")
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
-CHANNEL_USERNAME = "@capital_pay"
+CHANNEL_ID = -1002316458792  # chat_id канала @capital_pay
 MANAGER_ID = 7279978383
 BOT_USERNAME = "Capitalpay_newbot"
 
@@ -164,9 +164,9 @@ async def publish_welcome_post(message: types.Message):
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/Capitalpay_newbot?start=from_channel")
     )
-    await bot.send_message(chat_id=CHANNEL_USERNAME, text=text, reply_markup=keyboard)
+    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
 
-# 📌 Мини-пост с кнопкой «Посмотреть»
+# Мини-пост с кнопкой «Посмотреть»
 @dp.message_handler(commands=["info"])
 async def view_channel_message(message: types.Message):
     text = (

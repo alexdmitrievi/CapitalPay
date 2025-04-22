@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher.filters import Text
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
@@ -18,11 +19,12 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-def manager_buttons():
-    return types.InlineKeyboardMarkup(row_width=1).add(
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
-        types.InlineKeyboardButton("🔙 Назад", callback_data="back")
-    )
+def manager_buttons(include_back=True):
+    kb = types.InlineKeyboardMarkup(row_width=1)
+    kb.add(types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"))
+    if include_back:
+        kb.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back"))
+    return kb
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
@@ -47,33 +49,6 @@ async def start(message: types.Message):
     )
     await bot.send_photo(chat_id=message.chat.id, photo=banner, caption=caption, parse_mode='HTML', reply_markup=keyboard)
 
-@dp.message_handler(lambda message: message.text == "🔁 Перезапустить")
-async def restart_from_menu(message: types.Message):
-    await start(message)
-
-@dp.callback_query_handler(lambda c: c.data == "teamlead")
-async def teamlead_info(callback_query: types.CallbackQuery):
-    msg = (
-        "🤝 <b>6 преимуществ CapitalPay для тимлидов</b>\n\n"
-        "1. Высокая агентская рефка\n"
-        "2. Моментальный вывод средств\n"
-        "3. Тест без страхового депа\n"
-        "4. Личный кабинет и аналитика\n"
-        "5. Подключаем к закрытым площадкам\n"
-        "6. Заливаем до 100кк в течение часа\n\n"
-        "Хочешь условия и список площадок? Жми кнопку👇"
-    )
-    await bot.send_message(
-        callback_query.from_user.id,
-        text=msg,
-        parse_mode='HTML',
-        reply_markup=manager_buttons()
-    )
-
-@dp.callback_query_handler(lambda c: c.data == "back")
-async def back_to_menu(callback_query: types.CallbackQuery):
-    await start(callback_query.message)
-
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def form_start(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
@@ -83,7 +58,7 @@ async def form_start(callback_query: types.CallbackQuery):
 async def form_country(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
     await PartnerForm.methods.set()
-    await message.answer("2. Какие методы приёма платежей доступны? (C2C, СБП, crypto и т.д.)", reply_markup=manager_buttons())
+    await message.answer("2. Какие методы приёма платежей доступны?", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.methods)
 async def form_methods(message: types.Message, state: FSMContext):
@@ -95,7 +70,7 @@ async def form_methods(message: types.Message, state: FSMContext):
 async def form_geo(message: types.Message, state: FSMContext):
     await state.update_data(geo=message.text)
     await PartnerForm.volume.set()
-    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?", reply_markup=manager_buttons())
+    await message.answer("4. Какой объём в день готовы обрабатывать?", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.volume)
 async def form_volume(message: types.Message, state: FSMContext):
@@ -118,8 +93,28 @@ async def form_contact(message: types.Message, state: FSMContext):
 """
     await bot.send_message(chat_id=CHANNEL_ID, text=summary, parse_mode="HTML")
     await message.answer("Спасибо! Мы получили вашу заявку.")
-    await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
+    await message.answer("🎉 Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
     await state.finish()
+
+@dp.callback_query_handler(Text(equals="back"), state=PartnerForm.methods)
+async def back_to_country(callback: types.CallbackQuery):
+    await PartnerForm.country.set()
+    await callback.message.answer("1. Из какой вы страны?", reply_markup=manager_buttons())
+
+@dp.callback_query_handler(Text(equals="back"), state=PartnerForm.geo)
+async def back_to_methods(callback: types.CallbackQuery):
+    await PartnerForm.methods.set()
+    await callback.message.answer("2. Какие методы приёма платежей доступны?", reply_markup=manager_buttons())
+
+@dp.callback_query_handler(Text(equals="back"), state=PartnerForm.volume)
+async def back_to_geo(callback: types.CallbackQuery):
+    await PartnerForm.geo.set()
+    await callback.message.answer("3. На какое гео работаете?", reply_markup=manager_buttons())
+
+@dp.callback_query_handler(Text(equals="back"), state=PartnerForm.contact)
+async def back_to_volume(callback: types.CallbackQuery):
+    await PartnerForm.volume.set()
+    await callback.message.answer("4. Какой объём в день готовы обрабатывать?", reply_markup=manager_buttons())
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)

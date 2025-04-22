@@ -20,7 +20,8 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 # Google Sheets
 def init_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("/etc/secrets/credentials.json", scope)
+    creds_path = "/etc/secrets/capitalpay-3d03a47fdd18.json"
+    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
     sheet = client.open("CapitalPay Leads").sheet1
     return sheet
@@ -35,7 +36,7 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-# Общие кнопки
+# Кнопки
 def manager_keyboard():
     return types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
@@ -47,12 +48,9 @@ def back_or_manager():
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
 
-# Стартовое сообщение
+# Старт
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    source = message.get_args()
-    if source:
-        sheet.append_row([f"Трафик из: {source}"])
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
@@ -74,7 +72,7 @@ async def start(message: types.Message):
     )
     await bot.send_photo(message.chat.id, photo=banner, caption=caption, reply_markup=keyboard)
 
-# Тимлид инфо
+# Тимлид
 @dp.callback_query_handler(lambda c: c.data == "teamlead")
 async def teamlead_info(callback_query: types.CallbackQuery):
     text = (
@@ -99,10 +97,19 @@ async def post_button(message: types.Message):
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/CapitalPay_bot?start=from_channel")
     )
-    text = "🔗 Подключиться к CapitalPay как партнёр или команда"
+    text = (
+        "🚀 CapitalPay — ваш надежный партнер в мире гемблинг-платежей!\n\n"
+        "Друзья, если вы работаете с финансовыми потоками в iGaming, то знаете: надёжный процессинг — это как туз в рукаве. "
+        "И мы готовы стать вашим козырем!\n\n"
+        "💰 Выгодные условия для тимлидов и их команд\n"
+        "💻 Удобный софт с продвинутой аналитикой\n"
+        "🛡 Персональный менеджер и поддержка 24/7\n\n"
+        "CapitalPay — платежи без головной боли.\n"
+        "Подключайтесь 👇🏼"
+    )
     await bot.send_message(chat_id=CHANNEL_USERNAME, text=text, reply_markup=keyboard)
 
-# Воронка партнёра
+# Анкета
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def form_start(callback_query: types.CallbackQuery):
     await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_or_manager())
@@ -145,7 +152,7 @@ async def form_contact(message: types.Message, state: FSMContext):
         data['contact']
     ])
     await bot.send_message(CHANNEL_ID, f"""
-<b>Новая партнёрская заявка</b>:
+Новая партнёрская заявка:
 Страна: {data['country']}
 Методы: {data['methods']}
 Гео: {data['geo']}
@@ -156,5 +163,6 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
 
+# Запуск
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)

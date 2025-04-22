@@ -18,20 +18,22 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-back_button = types.InlineKeyboardMarkup().add(
-    types.InlineKeyboardButton("🔙 Назад", callback_data="back")
-)
+def manager_buttons():
+    return types.InlineKeyboardMarkup(row_width=1).add(
+        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
+        types.InlineKeyboardButton("🔙 Назад", callback_data="back")
+    )
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
+        types.InlineKeyboardButton("🔁 Перезапустить", callback_data="restart"),
     )
     banner = types.InputFile("banner.jpg")
     caption = (
-        "CapitalPay\n\n"
+        "<b>CapitalPay</b>\n\n"
         "💼 Сделки в HighRisk\n"
         "📊 Учёт, выплаты, аналитика\n"
         "📚 Личный куратор\n"
@@ -59,17 +61,13 @@ async def teamlead_info(callback_query: types.CallbackQuery):
         "4. Личный кабинет и аналитика\n"
         "5. Подключаем к закрытым площадкам\n"
         "6. Заливаем до 100кк в течение часа\n\n"
-        "Хочешь условия и список площадок? Жми кнопку👇🏼"
-    )
-    keyboard = types.InlineKeyboardMarkup(row_width=1).add(
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
-        types.InlineKeyboardButton("🔙 Назад", callback_data="back")
+        "Хочешь условия и список площадок? Жми кнопку👇"
     )
     await bot.send_message(
-        chat_id=callback_query.from_user.id,
+        callback_query.from_user.id,
         text=msg,
         parse_mode='HTML',
-        reply_markup=keyboard
+        reply_markup=manager_buttons()
     )
 
 @dp.callback_query_handler(lambda c: c.data == "back")
@@ -79,45 +77,46 @@ async def back_to_menu(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def form_start(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
-    await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_button)
+    await callback_query.message.answer("1. Из какой вы страны?", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.country)
 async def form_country(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
-    await message.answer("2. Какие методы приёма платежей доступны? (C2C, СБП, крипта и т.д.)", reply_markup=back_button)
     await PartnerForm.methods.set()
+    await message.answer("2. Какие методы приёма платежей доступны? (C2C, СБП, crypto и т.д.)", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.methods)
 async def form_methods(message: types.Message, state: FSMContext):
     await state.update_data(methods=message.text)
-    await message.answer("3. На какие гео работаете?", reply_markup=back_button)
     await PartnerForm.geo.set()
+    await message.answer("3. На какое гео работаете?", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.geo)
 async def form_geo(message: types.Message, state: FSMContext):
     await state.update_data(geo=message.text)
-    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?", reply_markup=back_button)
     await PartnerForm.volume.set()
+    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.volume)
 async def form_volume(message: types.Message, state: FSMContext):
     await state.update_data(volume=message.text)
-    await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=back_button)
     await PartnerForm.contact.set()
+    await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=manager_buttons())
 
 @dp.message_handler(state=PartnerForm.contact)
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
     summary = f"""
-Новая партнёрская заявка:
+<b>Новая партнёрская заявка:</b>
+
 Страна: {data['country']}
 Методы: {data['methods']}
 Гео: {data['geo']}
 Объём: {data['volume']}
 Контакт: {data['contact']}
-    """
-    await bot.send_message(chat_id=CHANNEL_ID, text=summary)
+"""
+    await bot.send_message(chat_id=CHANNEL_ID, text=summary, parse_mode="HTML")
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay. Мы свяжемся с вами в ближайшее время.")
     await state.finish()

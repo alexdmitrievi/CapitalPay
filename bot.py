@@ -36,7 +36,6 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-# Кнопки
 def back_or_manager():
     return types.InlineKeyboardMarkup(row_width=2).add(
         types.InlineKeyboardButton("🔙 Назад", callback_data="back"),
@@ -166,6 +165,22 @@ async def publish_welcome_post(message: types.Message):
         types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/Capitalpay_newbot?start=from_channel")
     )
     await bot.send_message(chat_id=CHANNEL_USERNAME, text=text, reply_markup=keyboard)
+
+# 📌 Мини-пост с кнопкой «Посмотреть»
+@dp.message_handler(commands=["info"])
+async def view_channel_message(message: types.Message):
+    text = (
+        "ℹ️ <b>Не пропустите важное!</b>\n\n"
+        "Прямо над закреплённым сообщением — ценная информация для команд и тимлидов:\n"
+        "• ответы на частые вопросы\n"
+        "• условия подключения\n"
+        "• быстрые гайды и ссылки\n\n"
+        "🔼 Пролистайте немного вверх или нажмите кнопку ниже 👇"
+    )
+    keyboard = types.InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
+    )
+    await message.answer(text, reply_markup=keyboard)
 
 # Запуск
 if __name__ == "__main__":

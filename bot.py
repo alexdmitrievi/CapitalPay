@@ -7,11 +7,11 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Конфигурация
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
-MANAGER_ID = 7279978383
 CHANNEL_USERNAME = "@capital_pay"
+MANAGER_ID = 7279978383
+BOT_USERNAME = "Capitalpay_newbot"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
@@ -37,11 +37,6 @@ class PartnerForm(StatesGroup):
     contact = State()
 
 # Кнопки
-def manager_keyboard():
-    return types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
-    )
-
 def back_or_manager():
     return types.InlineKeyboardMarkup(row_width=2).add(
         types.InlineKeyboardButton("🔙 Назад", callback_data="back"),
@@ -49,7 +44,7 @@ def back_or_manager():
     )
 
 # Старт
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
@@ -70,7 +65,7 @@ async def start(message: types.Message):
         "📆 На рынке с 2020\n"
         "📩 @lexcapitalpay"
     )
-    await bot.send_photo(message.chat.id, photo=banner, caption=caption, reply_markup=keyboard)
+    await bot.send_photo(message.chat.id, banner, caption=caption, reply_markup=keyboard)
 
 # Тимлид
 @dp.callback_query_handler(lambda c: c.data == "teamlead")
@@ -90,24 +85,6 @@ async def teamlead_info(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "back")
 async def back_to_menu(callback_query: types.CallbackQuery):
     await start(callback_query.message)
-
-# Публикация кнопки в канал
-@dp.message_handler(commands=["publish"])
-async def post_button(message: types.Message):
-    keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/CapitalPay_bot?start=from_channel")
-    )
-    text = (
-        "🚀 CapitalPay — ваш надежный партнер в мире гемблинг-платежей!\n\n"
-        "Друзья, если вы работаете с финансовыми потоками в iGaming, то знаете: надёжный процессинг — это как туз в рукаве. "
-        "И мы готовы стать вашим козырем!\n\n"
-        "💰 Выгодные условия для тимлидов и их команд\n"
-        "💻 Удобный софт с продвинутой аналитикой\n"
-        "🛡 Персональный менеджер и поддержка 24/7\n\n"
-        "CapitalPay — платежи без головной боли.\n"
-        "Подключайтесь 👇🏼"
-    )
-    await bot.send_message(chat_id=CHANNEL_USERNAME, text=text, reply_markup=keyboard)
 
 # Анкета
 @dp.callback_query_handler(lambda c: c.data == "connect")
@@ -152,7 +129,7 @@ async def form_contact(message: types.Message, state: FSMContext):
         data['contact']
     ])
     await bot.send_message(CHANNEL_ID, f"""
-Новая партнёрская заявка:
+<b>Новая партнёрская заявка:</b>
 Страна: {data['country']}
 Методы: {data['methods']}
 Гео: {data['geo']}
@@ -162,6 +139,33 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
+
+# Публикация в канал
+@dp.message_handler(commands=["publish"])
+async def publish_welcome_post(message: types.Message):
+    text = (
+        "🚀 <b>CapitalPay</b> — ваш надёжный партнёр в мире гемблинг-платежей!\n\n"
+        "Если вы работаете с финансовыми потоками в iGaming, вы знаете: надёжный процессинг — это как туз в рукаве. CapitalPay готов стать вашим козырем 💼\n\n"
+        "🎯 <b>Почему топовые команды выбирают нас?</b>\n\n"
+        "💰 <b>Выгодные условия для тимлидов:</b>\n"
+        "• Спецтарифы для крупных проектов\n"
+        "• Бонусы за объём и лояльность\n"
+        "• Индивидуальные решения под ваш трафик\n\n"
+        "💻 <b>Софт, который экономит нервы:</b>\n"
+        "• Удобный личный кабинет с аналитикой\n"
+        "• Интеграция API за 1 день\n"
+        "• Автоотчёты 24/7\n\n"
+        "🛡 <b>Поддержка с опытом:</b>\n"
+        "• Персональный менеджер в теме гемблинга\n"
+        "• Быстрые ответы и помощь 24/7\n"
+        "• Работаем с KYC, чарджбэками и рисками\n\n"
+        "👥 Присоединяйтесь к чату: @CapitalPay_Chat\n"
+        "⬇️ Нажмите кнопку ниже, чтобы подключиться!"
+    )
+    keyboard = types.InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/Capitalpay_newbot?start=from_channel")
+    )
+    await bot.send_message(chat_id=CHANNEL_USERNAME, text=text, reply_markup=keyboard)
 
 # Запуск
 if __name__ == "__main__":

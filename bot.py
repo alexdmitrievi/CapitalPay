@@ -180,7 +180,7 @@ async def view_channel_message(message: types.Message):
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
     )
-    await message.answer(text, reply_markup=keyboard)
+    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
 
 # Запуск
 if __name__ == "__main__":

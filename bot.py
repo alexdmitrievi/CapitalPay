@@ -41,7 +41,7 @@ def back_or_manager():
 
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
-    source = message.get_args() or "-"
+    source = message.get_args() or "direct"
     await dp.storage.set_data(user=message.from_user.id, data={"source": source})
 
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(

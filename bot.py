@@ -10,9 +10,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # Конфигурация
 API_TOKEN = os.getenv("API_TOKEN")
-CHANNEL_ID = -1002316458792  # chat_id канала @capital_pay
 MANAGER_ID = 7279978383
-
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot, storage=MemoryStorage())
@@ -42,7 +40,7 @@ def back_or_manager():
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
 
-# Старт
+# /start
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     keyboard = types.InlineKeyboardMarkup(row_width=1).add(
@@ -115,7 +113,7 @@ async def form_volume(message: types.Message, state: FSMContext):
     await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=back_or_manager())
     await PartnerForm.contact.set()
 
-# Финальный шаг: запись в таблицу
+# Финал: заявка и запись
 @dp.message_handler(state=PartnerForm.contact)
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
@@ -128,7 +126,7 @@ async def form_contact(message: types.Message, state: FSMContext):
 
     sheet.append_row([user_id, username, source, now])
 
-    await bot.send_message(CHANNEL_ID, f"""
+    await bot.send_message(MANAGER_ID, f"""
 <b>Новая партнёрская заявка:</b>
 Страна: {data['country']}
 Методы: {data['methods']}
@@ -141,49 +139,42 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
 
-# Публикация в канал
+# /publish — пост в канал (если нужно)
 @dp.message_handler(commands=["publish"])
 async def publish_welcome_post(message: types.Message):
     text = (
         "🚀 <b>CapitalPay</b> — ваш надёжный партнёр в мире гемблинг-платежей!\n\n"
-        "Если вы работаете с финансовыми потоками в iGaming, вы знаете: надёжный процессинг — это как туз в рукаве. CapitalPay готов стать вашим козырем 💼\n\n"
-        "🎯 <b>Почему топовые команды выбирают нас?</b>\n\n"
-        "💰 <b>Выгодные условия для тимлидов:</b>\n"
-        "• Спецтарифы для крупных проектов\n"
-        "• Бонусы за объём и лояльность\n"
-        "• Индивидуальные решения под ваш трафик\n\n"
-        "💻 <b>Софт, который экономит нервы:</b>\n"
-        "• Удобный личный кабинет с аналитикой\n"
-        "• Интеграция API за 1 день\n"
-        "• Автоотчёты 24/7\n\n"
-        "🛡 <b>Поддержка с опытом:</b>\n"
-        "• Персональный менеджер в теме гемблинга\n"
-        "• Быстрые ответы и помощь 24/7\n"
-        "• Работаем с KYC, чарджбэками и рисками\n\n"
+        "🎯 <b>Почему выбирают нас?</b>\n"
+        "💰 Выгодные условия для тимлидов\n"
+        "💻 Софт с аналитикой и API\n"
+        "🛡 Поддержка с опытом в гемблинге\n\n"
         "👥 Присоединяйтесь к чату: @CapitalPay_Chat\n"
         "⬇️ Нажмите кнопку ниже, чтобы подключиться!"
     )
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/Capitalpay_newbot?start=from_channel")
     )
-    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
+    await bot.send_message(chat_id=MANAGER_ID, text=text, reply_markup=keyboard)  # можно заменить на канал
 
-# Информационный пост /info
+# /info — вспомогательная кнопка
 @dp.message_handler(commands=["info"])
 async def view_channel_message(message: types.Message):
     text = (
         "ℹ️ <b>Не пропустите важное!</b>\n\n"
-        "Прямо над закреплённым сообщением — ценная информация для команд и тимлидов:\n"
-        "• ответы на частые вопросы\n"
-        "• условия подключения\n"
-        "• быстрые гайды и ссылки\n\n"
-        "🔼 Пролистайте немного вверх или нажмите кнопку ниже 👇"
+        "Прямо над закреплённым сообщением — ценные инструкции и ссылки для команд.\n\n"
+        "🔼 Пролистайте вверх или нажмите кнопку ниже 👇"
     )
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
     )
     await message.answer(text, reply_markup=keyboard)
 
+# Установка команды в меню Telegram
+async def set_bot_commands(dp):
+    await bot.set_my_commands([
+        types.BotCommand("start", "🔁 Перезапустить")
+    ])
+
 # Запуск
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True, on_startup=set_bot_commands)

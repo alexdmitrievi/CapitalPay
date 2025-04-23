@@ -139,19 +139,17 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
 
-@dp.message_handler(commands=["publish"])
-async def publish_post(message: types.Message):
+@dp.message_handler(commands=["info"])
+async def info_post(message: types.Message):
     text = (
-        "🚀 <b>CapitalPay</b> — ваш надёжный партнёр в мире гемблинг-платежей!\n"
-        "🎯 <b>Почему выбирают нас?</b>\n"
-        "💰 Выгодные условия для тимлидов\n"
-        "💻 Софт с аналитикой и API\n"
-        "🛡 Поддержка с опытом в гемблинге\n"
-        "👥 Присоединяйтесь к чату: @CapitalPay_Chat\n"
-        "⬇️ Нажмите кнопку ниже, чтобы подключиться!"
+        "ℹ️ Важная информация над закрепленным постом:\n\n"
+        "• Условия для команд\n"
+        "• Почему выбирают нас\n"
+        "• Обзор нашей платформы\n\n"
+        "👀 Нажми кнопку или пролистай вверх"
     )
     keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/Capitalpay_newbot?start=from_channel")
+        types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
     )
     await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
 

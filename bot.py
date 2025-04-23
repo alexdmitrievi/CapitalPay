@@ -171,9 +171,7 @@ async def info_post(message: types.Message):
 
 async def on_startup(dp):
     await bot.set_my_commands([
-        types.BotCommand("start", "🔁 Перезапустить"),
-        types.BotCommand("publish", "📣 Опубликовать пост"),
-        types.BotCommand("info", "ℹ️ Инфо над закрепом")
+        types.BotCommand("start", "🔁 Перезапустить")
     ])
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import os
 import logging
 import gspread
+from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -11,7 +12,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_ID = -1002316458792  # chat_id канала @capital_pay
 MANAGER_ID = 7279978383
-BOT_USERNAME = "Capitalpay_newbot"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
@@ -115,18 +115,19 @@ async def form_volume(message: types.Message, state: FSMContext):
     await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=back_or_manager())
     await PartnerForm.contact.set()
 
+# Финальный шаг: запись в таблицу
 @dp.message_handler(state=PartnerForm.contact)
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
-    sheet.append_row([
-        message.from_user.id,
-        data['country'],
-        data['methods'],
-        data['geo'],
-        data['volume'],
-        data['contact']
-    ])
+
+    user_id = message.from_user.id
+    username = message.from_user.username or "—"
+    source = message.get_args() or "—"
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    sheet.append_row([user_id, username, source, now])
+
     await bot.send_message(CHANNEL_ID, f"""
 <b>Новая партнёрская заявка:</b>
 Страна: {data['country']}
@@ -135,6 +136,7 @@ async def form_contact(message: types.Message, state: FSMContext):
 Объём: {data['volume']}
 Контакт: {data['contact']}
 """)
+
     await message.answer("Спасибо! Мы получили вашу заявку.")
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
@@ -166,7 +168,7 @@ async def publish_welcome_post(message: types.Message):
     )
     await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
 
-# Мини-пост с кнопкой «Посмотреть»
+# Информационный пост /info
 @dp.message_handler(commands=["info"])
 async def view_channel_message(message: types.Message):
     text = (
@@ -180,7 +182,7 @@ async def view_channel_message(message: types.Message):
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
     )
-    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
+    await message.answer(text, reply_markup=keyboard)
 
 # Запуск
 if __name__ == "__main__":

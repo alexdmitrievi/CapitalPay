@@ -8,5 +8,5 @@ services:
       - key: API_TOKEN
         sync: false
       - key: CHANNEL_ID
-        value: "7279978383"
+        value: "-1002316458792"
         sync: false

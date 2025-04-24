@@ -84,11 +84,10 @@ async def teamlead_info(callback_query: types.CallbackQuery):
     )
     await bot.send_message(callback_query.from_user.id, text, reply_markup=back_or_manager())
 
-    @dp.callback_query_handler(lambda c: c.data == "back_to_menu", state="*")
+@dp.callback_query_handler(lambda c: c.data == "back_to_menu", state="*")
 async def back_to_menu(callback_query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await start(callback_query.message)
-
 
 # Назад на шаг 1 — страна
 @dp.callback_query_handler(lambda c: c.data == "back_to_country", state=PartnerForm.methods)

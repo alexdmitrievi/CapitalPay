@@ -84,46 +84,80 @@ async def teamlead_info(callback_query: types.CallbackQuery):
     )
     await bot.send_message(callback_query.from_user.id, text, reply_markup=back_or_manager())
 
-@dp.callback_query_handler(lambda c: c.data == "back")
-async def back_to_menu(callback_query: types.CallbackQuery):
+    @dp.callback_query_handler(lambda c: c.data == "back_to_menu", state="*")
+async def back_to_menu(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.finish()
     await start(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == "connect")
-async def form_start(callback_query: types.CallbackQuery):
-    await callback_query.message.answer("1. Из какой вы страны?", reply_markup=back_or_manager())
+
+# Назад на шаг 1 — страна
+@dp.callback_query_handler(lambda c: c.data == "back_to_country", state=PartnerForm.methods)
+async def back_to_country(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
+    await bot.send_message(
+        callback_query.from_user.id,
+        "1. Из какой вы страны?",
+        reply_markup=types.InlineKeyboardMarkup().add(
+            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")
+        )
+    )
 
-@dp.message_handler(state=PartnerForm.country)
-async def form_country(message: types.Message, state: FSMContext):
-    await state.update_data(country=message.text)
-    await message.answer("2. Какие методы приёма платежей доступны?", reply_markup=back_or_manager())
+# Назад на шаг 2 — методы
+@dp.callback_query_handler(lambda c: c.data == "back_to_methods", state=PartnerForm.geo)
+async def back_to_methods(callback_query: types.CallbackQuery):
     await PartnerForm.methods.set()
+    await bot.send_message(
+        callback_query.from_user.id,
+        "2. Какие методы приёма платежей доступны?",
+        reply_markup=types.InlineKeyboardMarkup().add(
+            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_country")
+        )
+    )
 
-@dp.message_handler(state=PartnerForm.methods)
-async def form_methods(message: types.Message, state: FSMContext):
-    await state.update_data(methods=message.text)
-    await message.answer("3. На каком гео работаете?", reply_markup=back_or_manager())
+# Назад на шаг 3 — гео
+@dp.callback_query_handler(lambda c: c.data == "back_to_geo", state=PartnerForm.volume)
+async def back_to_geo(callback_query: types.CallbackQuery):
     await PartnerForm.geo.set()
+    await bot.send_message(
+        callback_query.from_user.id,
+        "3. На каком гео работаете?",
+        reply_markup=types.InlineKeyboardMarkup().add(
+            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_methods")
+        )
+    )
 
-@dp.message_handler(state=PartnerForm.geo)
-async def form_geo(message: types.Message, state: FSMContext):
-    await state.update_data(geo=message.text)
-    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?", reply_markup=back_or_manager())
+# Назад на шаг 4 — объём
+@dp.callback_query_handler(lambda c: c.data == "back_to_volume", state=PartnerForm.contact)
+async def back_to_volume(callback_query: types.CallbackQuery):
     await PartnerForm.volume.set()
+    await bot.send_message(
+        callback_query.from_user.id,
+        "4. Какой объём в день готовы обрабатывать (USD)?",
+        reply_markup=types.InlineKeyboardMarkup().add(
+            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_geo")
+        )
+    )
+
 
 @dp.message_handler(state=PartnerForm.volume)
 async def form_volume(message: types.Message, state: FSMContext):
     await state.update_data(volume=message.text)
-    await message.answer("5. Контакт для связи (Telegram или Email):", reply_markup=back_or_manager())
     await PartnerForm.contact.set()
+    await message.answer(
+        "5. Контакт для связи (Telegram или Email):",
+        reply_markup=types.InlineKeyboardMarkup().add(
+            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_volume")
+        )
+    )
 
+# Шаг 5 — контакт
 @dp.message_handler(state=PartnerForm.contact)
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
     data = await state.get_data()
     user = message.from_user
     source_data = await dp.storage.get_data(user=user.id)
-    source = source_data.get("source", "-")
+    source = source_data.get("source", "direct")
     sheet.append_row([
         user.id,
         f"@{user.username}" if user.username else "-",

@@ -34,9 +34,9 @@ class PartnerForm(StatesGroup):
     contact = State()
 
 def back_or_manager():
-    return types.InlineKeyboardMarkup(row_width=2).add(
-        types.InlineKeyboardButton("🔙 Назад", callback_data="back"),
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
+    return types.InlineKeyboardMarkup(row_width=1).add(
+        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
+        types.InlineKeyboardButton("🔙 Назад", callback_data="back")
     )
 
 @dp.message_handler(commands=["start"])

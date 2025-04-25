@@ -33,12 +33,7 @@ class PartnerForm(StatesGroup):
     volume = State()
     contact = State()
 
-def back_or_manager():
-    return types.InlineKeyboardMarkup(row_width=1).add(
-        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
-        types.InlineKeyboardButton("🔙 Назад", callback_data="back")
-    )
-
+# Старт
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     source = message.get_args() or "direct"
@@ -69,8 +64,11 @@ async def start(message: types.Message):
     else:
         await message.answer(caption, reply_markup=keyboard)
 
+# Блок для тимлидов
 @dp.callback_query_handler(lambda c: c.data == "teamlead")
-async def teamlead_info(callback_query: types.CallbackQuery):
+async def teamlead_info(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.finish()
+
     text = (
         "🤝 <b>6 преимуществ CapitalPay для тимлидов</b>\n\n"
         "1. Высокая агентская рефка\n"
@@ -79,77 +77,46 @@ async def teamlead_info(callback_query: types.CallbackQuery):
         "4. Личный кабинет и аналитика\n"
         "5. Подключаем к закрытым площадкам\n"
         "6. Заливаем до 100кк в течение часа\n\n"
-        "Хочешь условия и список площадок?\n"
         "👇🏼 Жми кнопку ниже"
     )
-    await bot.send_message(callback_query.from_user.id, text, reply_markup=back_or_manager())
 
-@dp.callback_query_handler(lambda c: c.data == "back_to_menu", state="*")
-async def back_to_menu(callback_query: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    await start(callback_query.message)
+    keyboard = types.InlineKeyboardMarkup(row_width=1).add(
+        types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
+        types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")
+    )
 
-# Назад на шаг 1 — страна
-@dp.callback_query_handler(lambda c: c.data == "back_to_country", state=PartnerForm.methods)
-async def back_to_country(callback_query: types.CallbackQuery):
+    await bot.send_message(callback_query.from_user.id, text, reply_markup=keyboard)
+
+# Анкета
+@dp.callback_query_handler(lambda c: c.data == "connect")
+async def form_start(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
-    await bot.send_message(
-        callback_query.from_user.id,
-        "1. Из какой вы страны?",
-        reply_markup=types.InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")
-        )
-    )
+    await bot.send_message(callback_query.from_user.id, "1. Из какой вы страны?")
 
-# Назад на шаг 2 — методы
-@dp.callback_query_handler(lambda c: c.data == "back_to_methods", state=PartnerForm.geo)
-async def back_to_methods(callback_query: types.CallbackQuery):
+@dp.message_handler(state=PartnerForm.country)
+async def form_country(message: types.Message, state: FSMContext):
+    await state.update_data(country=message.text)
     await PartnerForm.methods.set()
-    await bot.send_message(
-        callback_query.from_user.id,
-        "2. Какие методы приёма платежей доступны?",
-        reply_markup=types.InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_country")
-        )
-    )
+    await message.answer("2. Какие методы приёма платежей доступны?")
 
-# Назад на шаг 3 — гео
-@dp.callback_query_handler(lambda c: c.data == "back_to_geo", state=PartnerForm.volume)
-async def back_to_geo(callback_query: types.CallbackQuery):
+@dp.message_handler(state=PartnerForm.methods)
+async def form_methods(message: types.Message, state: FSMContext):
+    await state.update_data(methods=message.text)
     await PartnerForm.geo.set()
-    await bot.send_message(
-        callback_query.from_user.id,
-        "3. На каком гео работаете?",
-        reply_markup=types.InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_methods")
-        )
-    )
+    await message.answer("3. На каком гео работаете?")
 
-# Назад на шаг 4 — объём
-@dp.callback_query_handler(lambda c: c.data == "back_to_volume", state=PartnerForm.contact)
-async def back_to_volume(callback_query: types.CallbackQuery):
+@dp.message_handler(state=PartnerForm.geo)
+async def form_geo(message: types.Message, state: FSMContext):
+    await state.update_data(geo=message.text)
     await PartnerForm.volume.set()
-    await bot.send_message(
-        callback_query.from_user.id,
-        "4. Какой объём в день готовы обрабатывать (USD)?",
-        reply_markup=types.InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_geo")
-        )
-    )
-
+    await message.answer("4. Какой объём в день готовы обрабатывать (USD)?")
 
 @dp.message_handler(state=PartnerForm.volume)
 async def form_volume(message: types.Message, state: FSMContext):
     await state.update_data(volume=message.text)
     await PartnerForm.contact.set()
-    await message.answer(
-        "5. Контакт для связи (Telegram или Email):",
-        reply_markup=types.InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_volume")
-        )
-    )
+    await message.answer("5. Контакт для связи (Telegram или Email):")
 
-# Шаг 5 — контакт
 @dp.message_handler(state=PartnerForm.contact)
 async def form_contact(message: types.Message, state: FSMContext):
     await state.update_data(contact=message.text)
@@ -157,22 +124,49 @@ async def form_contact(message: types.Message, state: FSMContext):
     user = message.from_user
     source_data = await dp.storage.get_data(user=user.id)
     source = source_data.get("source", "direct")
+
+    # Запись в таблицу
     sheet.append_row([
         user.id,
         f"@{user.username}" if user.username else "-",
         source,
         datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     ])
+
+    # Отправка менеджеру
     await bot.send_message(MANAGER_ID, f"<b>Новая партнёрская заявка:</b>\n"
                                        f"Страна: {data['country']}\n"
                                        f"Методы: {data['methods']}\n"
                                        f"Гео: {data['geo']}\n"
                                        f"Объём: {data['volume']}\n"
                                        f"Контакт: {data['contact']}")
-    await message.answer("Спасибо! Мы получили вашу заявку.")
-    await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
+
+    # Ответ пользователю
+    await message.answer("Спасибо! Мы получили вашу заявку.\n\n🎉 Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
 
+# Команда /publish
+@dp.message_handler(commands=["publish"])
+async def publish_post(message: types.Message):
+    if str(message.from_user.id) != str(MANAGER_ID):
+        await message.reply("У вас нет прав для публикации поста.")
+        return
+
+    text = (
+        "🚀 <b>CapitalPay</b> — ваш надёжный партнёр в мире гемблинг-платежей!\n\n"
+        "🎯 <b>Почему выбирают нас?</b>\n"
+        "💰 Выгодные условия для тимлидов\n"
+        "💻 Софт с аналитикой и API\n"
+        "🛡 Поддержка с опытом в гемблинге\n\n"
+        "👥 Присоединяйтесь к чату: @CapitalPay_Chat\n"
+        "⬇️ Нажмите кнопку ниже, чтобы подключиться!"
+    )
+    keyboard = types.InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton("🔗 Подключиться", url="https://t.me/Capitalpay_newbot?start=from_channel")
+    )
+    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
+
+# Команда /info
 @dp.message_handler(commands=["info"])
 async def info_post(message: types.Message):
     text = (
@@ -187,20 +181,7 @@ async def info_post(message: types.Message):
     )
     await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
 
-@dp.message_handler(commands=["info"])
-async def info_post(message: types.Message):
-    text = (
-        "ℹ️ Важная информация прямо над закреплённым постом:\n\n"
-        "• Частые вопросы\n"
-        "• Условия\n"
-        "• Гайды\n\n"
-        "👀 Нажми кнопку или пролистай вверх"
-    )
-    keyboard = types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
-    )
-    await message.answer(text, reply_markup=keyboard)
-
+# Старт бота
 async def on_startup(dp):
     await bot.set_my_commands([
         types.BotCommand("start", "🔁 Перезапустить")

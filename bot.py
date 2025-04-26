@@ -14,20 +14,23 @@ CHANNEL_ID = -1002316458792
 MANAGER_ID = 7279978383
 BOT_USERNAME = "Capitalpay_newbot"
 
+if not API_TOKEN:
+    raise Exception("API_TOKEN not found in environment variables")
+
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 def init_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_json = os.getenv("GOOGLE_CREDS_JSON")  # тут поправил название переменной
-
+    creds_json = os.getenv("GOOGLE_CREDS_JSON")
     if not creds_json:
         raise Exception("GOOGLE_CREDS_JSON not found in environment variables")
-
     creds_dict = json.loads(creds_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     return client.open("CapitalPay Leads").sheet1
+
+sheet = init_sheet()
 
 class PartnerForm(StatesGroup):
     country = State()
@@ -66,7 +69,6 @@ async def start(message: types.Message):
     else:
         await message.answer(caption, reply_markup=keyboard)
 
-# ========================= TEAMLEAD =============================
 @dp.callback_query_handler(lambda c: c.data == "teamlead")
 async def teamlead_info(callback_query: types.CallbackQuery, state: FSMContext):
     await state.finish()
@@ -94,7 +96,6 @@ async def back_to_menu(callback_query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await start(callback_query.message)
 
-# ========================= FORM FLOW =============================
 @dp.callback_query_handler(lambda c: c.data == "connect")
 async def form_start(callback_query: types.CallbackQuery):
     await PartnerForm.country.set()
@@ -170,8 +171,6 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
     await state.finish()
 
-# ========================= PUBLISH & INFO =============================
-
 @dp.message_handler(commands=["publish"])
 async def publish_post(message: types.Message):
     if str(message.from_user.id) != str(MANAGER_ID):
@@ -208,7 +207,6 @@ async def info_post(message: types.Message):
     )
     await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
 
-# ========================= STARTUP =============================
 async def on_startup(dp):
     await bot.set_my_commands([
         types.BotCommand("start", "🔁 Перезапустить"),
@@ -216,4 +214,3 @@ async def on_startup(dp):
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
-

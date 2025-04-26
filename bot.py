@@ -29,8 +29,6 @@ def init_sheet():
     client = gspread.authorize(creds)
     return client.open("CapitalPay Leads").sheet1
 
-sheet = init_sheet()
-
 class PartnerForm(StatesGroup):
     country = State()
     methods = State()

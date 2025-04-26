@@ -1,6 +1,7 @@
 import os
 import logging
 import gspread
+import json
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -18,8 +19,9 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 def init_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_path = "/etc/secrets/capitalpay-3d03a47fdd18.json"
-    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
+    creds_data = os.getenv("GCP_CREDENTIALS_JSON")  # Получаем JSON из переменной окружения
+    creds_dict = json.loads(creds_data)  # Превращаем строку обратно в dict
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     return client.open("CapitalPay Leads").sheet1
 

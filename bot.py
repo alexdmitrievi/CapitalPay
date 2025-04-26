@@ -19,10 +19,10 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 def init_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_json = os.getenv("GCP_CREDENTIALS_JSON")
+    creds_json = os.getenv("GOOGLE_CREDS_JSON")  # тут поправил название переменной
 
     if not creds_json:
-        raise Exception("GCP_CREDENTIALS_JSON not found in environment variables")
+        raise Exception("GOOGLE_CREDS_JSON not found in environment variables")
 
     creds_dict = json.loads(creds_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)

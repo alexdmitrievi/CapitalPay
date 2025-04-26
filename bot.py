@@ -19,8 +19,12 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 def init_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_data = os.getenv("GCP_CREDENTIALS_JSON")  # Получаем JSON из переменной окружения
-    creds_dict = json.loads(creds_data)  # Превращаем строку обратно в dict
+    creds_json = os.getenv("GCP_CREDENTIALS_JSON")
+
+    if not creds_json:
+        raise Exception("GCP_CREDENTIALS_JSON not found in environment variables")
+
+    creds_dict = json.loads(creds_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     return client.open("CapitalPay Leads").sheet1

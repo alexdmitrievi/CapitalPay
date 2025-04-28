@@ -1,16 +1,24 @@
-# fly.toml app configuration file generated for capitalpay-bot
+# fly.toml app configuration file for CapitalPay Bot
 
-app = 'capitalpay-bot'
-primary_region = 'waw'
+app = "capitalpay-bot"
+primary_region = "waw"
 
 [build]
-  builder = 'paketobuildpacks/builder:base'
+  builder = "paketobuildpacks/builder:base"
 
 [env]
-  PORT = '8080'
+  PORT = "8080"
 
-[vm]
-  memory = 1024
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  memory = "1024"
   cpu_kind = "shared"
   cpus = 1
 
@@ -19,4 +27,5 @@ primary_region = 'waw'
 
 [processes]
   app = "python bot.py"
+
 

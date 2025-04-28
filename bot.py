@@ -47,6 +47,7 @@ async def start(message: types.Message):
     source = message.get_args() or "direct"
     await dp.storage.set_data(user=message.from_user.id, data={"source": source})
 
+    # ⚡ Строим клавиатуру динамически
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     keyboard.add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
@@ -54,10 +55,11 @@ async def start(message: types.Message):
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
 
-    if str(message.from_user.id) in [str(admin) for admin in ADMIN_IDS]:
+    # 🎯 Если это админ — добавляем кнопки Publish и Info
+    if str(message.from_user.id) == str(MANAGER_ID):
         keyboard.add(
-            types.InlineKeyboardButton("📰 Publish", callback_data="publish_post"),
-            types.InlineKeyboardButton("ℹ️ Info", callback_data="info_post")
+            types.InlineKeyboardButton("📰 Publish", callback_data="publish"),
+            types.InlineKeyboardButton("ℹ️ Info", callback_data="info")
         )
 
     caption = (

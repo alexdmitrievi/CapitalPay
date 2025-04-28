@@ -9,6 +9,8 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from oauth2client.service_account import ServiceAccountCredentials
 
+PORT = int(os.environ.get('PORT', 8080))
+
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_ID = -1002316458792
 MANAGER_ID = 7279978383

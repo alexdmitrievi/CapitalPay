@@ -1,7 +1,4 @@
-# fly.toml app configuration file generated for capitalpay-bot on 2025-04-26T15:53:26+06:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# fly.toml app configuration file generated for capitalpay-bot
 
 app = 'capitalpay-bot'
 primary_region = 'waw'
@@ -20,7 +17,14 @@ primary_region = 'waw'
   min_machines_running = 0
   processes = ['app']
 
-[[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+[vm]
+  memory = 1024
+  cpu_kind = "shared"
   cpus = 1
+
+[experimental]
+  auto_rollback = true
+
+[processes]
+  app = "python bot.py"
+

@@ -220,9 +220,11 @@ async def info_from_button(callback_query: types.CallbackQuery):
     await callback_query.answer("Пост опубликован.", show_alert=True)
 
 async def on_startup(dp):
+    await bot.delete_webhook(drop_pending_updates=True)
     await bot.set_my_commands([
         types.BotCommand("start", "🔁 Перезапустить"),
     ])
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+

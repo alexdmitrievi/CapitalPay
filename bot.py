@@ -14,6 +14,7 @@ PORT = int(os.environ.get('PORT', 8080))
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_ID = -1002316458792
 MANAGER_ID = 7279978383
+ADMIN_IDS = [7279978383]  # список админов
 BOT_USERNAME = "Capitalpay_newbot"
 
 if not API_TOKEN:
@@ -46,11 +47,18 @@ async def start(message: types.Message):
     source = message.get_args() or "direct"
     await dp.storage.set_data(user=message.from_user.id, data={"source": source})
 
-    keyboard = types.InlineKeyboardMarkup(row_width=1).add(
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
+
+    if str(message.from_user.id) in [str(admin) for admin in ADMIN_IDS]:
+        keyboard.add(
+            types.InlineKeyboardButton("📰 Publish", callback_data="publish_post"),
+            types.InlineKeyboardButton("ℹ️ Info", callback_data="info_post")
+        )
 
     caption = (
         "<b>CapitalPay</b>\n\n"
@@ -74,7 +82,7 @@ async def start(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "teamlead")
 async def teamlead_info(callback_query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-
+    
     text = (
         "🤝 <b>6 преимуществ CapitalPay для тимлидов</b>\n\n"
         "1. Высокая агентская рефка\n"
@@ -86,7 +94,8 @@ async def teamlead_info(callback_query: types.CallbackQuery, state: FSMContext):
         "👇🏼 Жми кнопку ниже"
     )
 
-    keyboard = types.InlineKeyboardMarkup(row_width=1).add(
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}"),
         types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")
     )
@@ -169,16 +178,14 @@ async def form_contact(message: types.Message, state: FSMContext):
                                        f"Объём: {data['volume']}\n"
                                        f"Контакт: {data['contact']}")
 
-    await message.answer("Спасибо! Мы получили вашу заявку.")
-    await message.answer("🎉 Поздравляем! Вы успешно зарегистрировались как партнёр CapitalPay.")
+    await message.answer("Спасибо! Мы получили вашу заявку. 🎉")
     await state.finish()
 
-@dp.message_handler(commands=["publish"])
-async def publish_post(message: types.Message):
-    if str(message.from_user.id) != str(MANAGER_ID):
-        await message.reply("У вас нет прав для публикации поста.")
+@dp.callback_query_handler(lambda c: c.data == "publish_post")
+async def publish_from_button(callback_query: types.CallbackQuery):
+    if str(callback_query.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
+        await callback_query.answer("Нет доступа.", show_alert=True)
         return
-
     text = (
         "🚀 <b>CapitalPay</b> — ваш надёжный партнёр в мире гемблинг-платежей!\n\n"
         "🎯 <b>Почему выбирают нас?</b>\n"
@@ -188,15 +195,17 @@ async def publish_post(message: types.Message):
         "👥 Присоединяйтесь к чату: @CapitalPay_Chat\n"
         "⬇️ Нажмите кнопку ниже, чтобы подключиться!"
     )
-
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("🔗 Подключиться", url=f"https://t.me/{BOT_USERNAME}?start=from_channel")
     )
+    await bot.send_message(CHANNEL_ID, text, reply_markup=keyboard)
+    await callback_query.answer("Пост опубликован.", show_alert=True)
 
-    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
-
-@dp.message_handler(commands=["info"])
-async def info_post(message: types.Message):
+@dp.callback_query_handler(lambda c: c.data == "info_post")
+async def info_from_button(callback_query: types.CallbackQuery):
+    if str(callback_query.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
+        await callback_query.answer("Нет доступа.", show_alert=True)
+        return
     text = (
         "ℹ️ Важная информация над закреплённым постом:\n\n"
         "• Условия для команд\n"
@@ -207,7 +216,8 @@ async def info_post(message: types.Message):
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
     )
-    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
+    await bot.send_message(CHANNEL_ID, text, reply_markup=keyboard)
+    await callback_query.answer("Пост опубликован.", show_alert=True)
 
 async def on_startup(dp):
     await bot.set_my_commands([

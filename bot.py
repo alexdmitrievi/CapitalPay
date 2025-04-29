@@ -47,19 +47,20 @@ async def start(message: types.Message):
     source = message.get_args() or "direct"
     await dp.storage.set_data(user=message.from_user.id, data={"source": source})
 
-    # ⚡ Строим клавиатуру динамически
     keyboard = types.InlineKeyboardMarkup(row_width=1)
+
+    # Кнопки для всех
     keyboard.add(
         types.InlineKeyboardButton("🤝 Стать партнёром", callback_data="connect"),
         types.InlineKeyboardButton("👨‍💼 Я тимлид 🤗", callback_data="teamlead"),
         types.InlineKeyboardButton("📩 Связаться с менеджером", url=f"tg://user?id={MANAGER_ID}")
     )
 
-    # 🎯 Если это админ — добавляем кнопки Publish и Info
-    if str(message.from_user.id) == str(MANAGER_ID):
+    # Дополнительно кнопки только для админов
+    if str(message.from_user.id) in [str(admin) for admin in ADMIN_IDS]:
         keyboard.add(
-            types.InlineKeyboardButton("📰 Publish", callback_data="publish"),
-            types.InlineKeyboardButton("ℹ️ Info", callback_data="info")
+            types.InlineKeyboardButton("📢 Опубликовать пост", callback_data="publish_post"),
+            types.InlineKeyboardButton("ℹ️ Опубликовать инфо", callback_data="info_post")
         )
 
     caption = (
@@ -183,11 +184,13 @@ async def form_contact(message: types.Message, state: FSMContext):
     await message.answer("Спасибо! Мы получили вашу заявку. 🎉")
     await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data == "publish_post")
-async def publish_from_button(callback_query: types.CallbackQuery):
-    if str(callback_query.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
-        await callback_query.answer("Нет доступа.", show_alert=True)
+# Команда для публикации поста (только для админов)
+@dp.message_handler(commands=["publish"])
+async def publish_post(message: types.Message):
+    if str(message.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
+        await message.reply("🚫 У вас нет прав для публикации поста.")
         return
+
     text = (
         "🚀 <b>CapitalPay</b> — ваш надёжный партнёр в мире гемблинг-платежей!\n\n"
         "🎯 <b>Почему выбирают нас?</b>\n"
@@ -197,17 +200,20 @@ async def publish_from_button(callback_query: types.CallbackQuery):
         "👥 Присоединяйтесь к чату: @CapitalPay_Chat\n"
         "⬇️ Нажмите кнопку ниже, чтобы подключиться!"
     )
+
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("🔗 Подключиться", url=f"https://t.me/{BOT_USERNAME}?start=from_channel")
     )
-    await bot.send_message(CHANNEL_ID, text, reply_markup=keyboard)
-    await callback_query.answer("Пост опубликован.", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data == "info_post")
-async def info_from_button(callback_query: types.CallbackQuery):
-    if str(callback_query.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
-        await callback_query.answer("Нет доступа.", show_alert=True)
+    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
+
+# Команда для публикации инфо-поста (только для админов)
+@dp.message_handler(commands=["info"])
+async def info_post(message: types.Message):
+    if str(message.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
+        await message.reply("🚫 У вас нет прав для публикации информации.")
         return
+
     text = (
         "ℹ️ Важная информация над закреплённым постом:\n\n"
         "• Условия для команд\n"
@@ -215,11 +221,28 @@ async def info_from_button(callback_query: types.CallbackQuery):
         "• Обзор нашей платформы\n\n"
         "👀 Нажми кнопку или пролистай вверх"
     )
+
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("👀 Посмотреть", url="https://t.me/capital_pay/17")
     )
-    await bot.send_message(CHANNEL_ID, text, reply_markup=keyboard)
-    await callback_query.answer("Пост опубликован.", show_alert=True)
+
+    await bot.send_message(chat_id=CHANNEL_ID, text=text, reply_markup=keyboard)
+
+@dp.callback_query_handler(lambda c: c.data == "publish_post")
+async def publish_from_button(callback_query: types.CallbackQuery):
+    if str(callback_query.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
+        await callback_query.answer("🚫 Нет доступа.", show_alert=True)
+        return
+    await publish_post(callback_query.message)
+    await callback_query.answer("✅ Пост опубликован.", show_alert=True)
+
+@dp.callback_query_handler(lambda c: c.data == "info_post")
+async def info_from_button(callback_query: types.CallbackQuery):
+    if str(callback_query.from_user.id) not in [str(admin) for admin in ADMIN_IDS]:
+        await callback_query.answer("🚫 Нет доступа.", show_alert=True)
+        return
+    await info_post(callback_query.message)
+    await callback_query.answer("✅ Информация опубликована.", show_alert=True)
 
 async def on_startup(dp):
     await bot.delete_webhook(drop_pending_updates=True)
